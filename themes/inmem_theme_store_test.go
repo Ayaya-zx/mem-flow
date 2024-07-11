@@ -99,13 +99,21 @@ func TestRepeated(t *testing.T) {
 	}
 
 	nextRep := theme.NextRepeat
-	store.ThemeRepeated(id)
+	err = store.ThemeRepeated(id)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if nextRep == theme.NextRepeat {
 		t.Errorf("want theme.NextRepeat change; got %v", theme.NextRepeat)
 	}
+
+	err = store.ThemeRepeated(100)
+	if err == nil {
+		t.Errorf("got nil; want err")
+	}
 }
 
-func TestGetAll(t *testing.T) {
+func TestGet(t *testing.T) {
 	var tests = []struct {
 		title  string
 		wantId int
@@ -130,5 +138,10 @@ func TestGetAll(t *testing.T) {
 			t.Errorf("on id = %d want title %s; got %s",
 				test.wantId, test.title, theme.Title)
 		}
+	}
+
+	_, err := store.GetTheme(100)
+	if err == nil {
+		t.Errorf("got nil; want err")
 	}
 }
