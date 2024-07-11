@@ -33,7 +33,7 @@ func (t *Theme) Repeat() {
 }
 
 type ThemeStore interface {
-	AddTheme(string) error
+	AddTheme(string) (int, error)
 	RemoveTheme(int) error
 	ThemeRepeated(int) error
 	GetAllThemes() ([]*Theme, error)

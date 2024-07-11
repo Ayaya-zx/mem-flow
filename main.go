@@ -92,7 +92,7 @@ func (s *themeServer) createThemeHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	err = s.themeStore.AddTheme(string(data))
+	id, err := s.themeStore.AddTheme(string(data))
 	if _, ok := err.(themes.ThemeTitleError); ok {
 		fmt.Println(err)
 		w.WriteHeader(400)
@@ -103,6 +103,7 @@ func (s *themeServer) createThemeHandler(w http.ResponseWriter, r *http.Request)
 		w.WriteHeader(500)
 		return
 	}
+	io.WriteString(w, strconv.Itoa(id))
 }
 
 func (s *themeServer) getThemeHandler(w http.ResponseWriter, r *http.Request) {

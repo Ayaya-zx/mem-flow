@@ -15,6 +15,7 @@ type InmemThemeStore struct {
 
 func NewInmemThemeStore() *InmemThemeStore {
 	return &InmemThemeStore{
+		nextId:      1,
 		themes:      make(map[int]*Theme),
 		themeTitles: make(map[string]struct{}),
 	}
@@ -26,12 +27,12 @@ func (e ThemeTitleError) Error() string {
 	return string(e)
 }
 
-func (ts *InmemThemeStore) AddTheme(title string) error {
+func (ts *InmemThemeStore) AddTheme(title string) (int, error) {
 	if title == "" {
-		return ThemeTitleError("theme's title is empty")
+		return 0, ThemeTitleError("theme's title is empty")
 	}
 	if _, ok := ts.themeTitles[title]; ok {
-		return ThemeTitleError(fmt.Sprintf(
+		return 0, ThemeTitleError(fmt.Sprintf(
 			"theme with title %s already exists",
 			title,
 		))
@@ -45,10 +46,11 @@ func (ts *InmemThemeStore) AddTheme(title string) error {
 
 	ts.m.Lock()
 	defer ts.m.Unlock()
+	theme.Id = ts.nextId
 	ts.themes[ts.nextId] = theme
 	ts.nextId++
 	ts.themeTitles[title] = struct{}{}
-	return nil
+	return theme.Id, nil
 }
 
 func (ts *InmemThemeStore) RemoveTheme(id int) error {
