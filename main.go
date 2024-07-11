@@ -6,9 +6,12 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/Ayaya-zx/mem-flow/themes"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 )
 
 type themeServer struct {
@@ -20,6 +23,22 @@ func newThemeServer(themeStore themes.ThemeStore) *themeServer {
 }
 
 func main() {
+	var port int
+
+	v := viper.New()
+	v.SetDefault("Port", 8765)
+
+	v.AutomaticEnv()
+	v.SetEnvPrefix("MEMFLOW")
+	v.BindEnv("Port", "port")
+
+	pflag.IntVarP(&port, "port", "p", 8765, "Port")
+	pflag.Parse()
+	if err := v.BindPFlag("Port", pflag.Lookup("port")); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
 	server := newThemeServer(themes.NewInmemThemeStore())
 	mux := http.NewServeMux()
 
@@ -30,7 +49,7 @@ func main() {
 	mux.HandleFunc("DELETE /themes/{id}", server.deleteThemeHandler)
 	mux.HandleFunc("GET /example", exampleHandler)
 
-	err := http.ListenAndServe(":8765", mux)
+	err := http.ListenAndServe(fmt.Sprintf(":%d", v.GetInt("Port")), mux)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -73,7 +92,13 @@ func (s *themeServer) createThemeHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := s.themeStore.AddTheme(string(data)); err != nil {
+	err = s.themeStore.AddTheme(string(data))
+	if _, ok := err.(themes.ThemeTitleError); ok {
+		fmt.Println(err)
+		w.WriteHeader(400)
+		return
+	}
+	if err != nil {
 		fmt.Println(r.Host, err)
 		w.WriteHeader(500)
 		return

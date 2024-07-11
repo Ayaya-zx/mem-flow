@@ -7,18 +7,36 @@ import (
 )
 
 type InmemThemeStore struct {
-	m      sync.Mutex
-	themes map[int]*Theme
-	nextId int
+	m           sync.Mutex
+	themes      map[int]*Theme
+	themeTitles map[string]struct{}
+	nextId      int
 }
 
 func NewInmemThemeStore() *InmemThemeStore {
 	return &InmemThemeStore{
-		themes: make(map[int]*Theme),
+		themes:      make(map[int]*Theme),
+		themeTitles: make(map[string]struct{}),
 	}
 }
 
+type ThemeTitleError string
+
+func (e ThemeTitleError) Error() string {
+	return string(e)
+}
+
 func (ts *InmemThemeStore) AddTheme(title string) error {
+	if title == "" {
+		return ThemeTitleError("theme's title is empty")
+	}
+	if _, ok := ts.themeTitles[title]; ok {
+		return ThemeTitleError(fmt.Sprintf(
+			"theme with title %s already exists",
+			title,
+		))
+	}
+
 	theme := new(Theme)
 	theme.Title = title
 	theme.Created = time.Now()
@@ -29,13 +47,17 @@ func (ts *InmemThemeStore) AddTheme(title string) error {
 	defer ts.m.Unlock()
 	ts.themes[ts.nextId] = theme
 	ts.nextId++
+	ts.themeTitles[title] = struct{}{}
 	return nil
 }
 
 func (ts *InmemThemeStore) RemoveTheme(id int) error {
 	ts.m.Lock()
 	defer ts.m.Unlock()
-	delete(ts.themes, id)
+	if theme, ok := ts.themes[id]; ok {
+		delete(ts.themes, id)
+		delete(ts.themeTitles, theme.Title)
+	}
 	return nil
 }
 
