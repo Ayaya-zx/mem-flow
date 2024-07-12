@@ -1,10 +1,12 @@
-package themes
+package entity
 
-import "time"
+import (
+	"time"
+)
 
 type Level int
 
-type Theme struct {
+type Topic struct {
 	Id           int       `json:"id"`
 	Title        string    `json:"title"`
 	Created      time.Time `json:"created"`
@@ -13,7 +15,7 @@ type Theme struct {
 	level        int
 }
 
-func (t *Theme) Repeat() {
+func (t *Topic) Repeat() {
 	t.LastRepeated = time.Now()
 	switch t.level {
 	case 0: // 8 hours
@@ -30,12 +32,4 @@ func (t *Theme) Repeat() {
 	if t.level < 4 {
 		t.level++
 	}
-}
-
-type ThemeStore interface {
-	AddTheme(string) (int, error)
-	RemoveTheme(int) error
-	ThemeRepeated(int) error
-	GetAllThemes() ([]*Theme, error)
-	GetTheme(int) (*Theme, error)
 }

@@ -9,17 +9,19 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/Ayaya-zx/mem-flow/themes"
+	"github.com/Ayaya-zx/mem-flow/internal/entity"
+	"github.com/Ayaya-zx/mem-flow/internal/store"
+	"github.com/Ayaya-zx/mem-flow/internal/store/inmem"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
-type themeServer struct {
-	themeStore themes.ThemeStore
+type topicServer struct {
+	topicStore store.TopicStore
 }
 
-func newThemeServer(themeStore themes.ThemeStore) *themeServer {
-	return &themeServer{themeStore: themeStore}
+func newTopicServer(topicStore store.TopicStore) *topicServer {
+	return &topicServer{topicStore: topicStore}
 }
 
 func main() {
@@ -39,14 +41,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	server := newThemeServer(themes.NewInmemThemeStore())
+	server := newTopicServer(inmem.NewInmemTopicStore())
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("GET /themes", server.getAllThemesHandler)
-	mux.HandleFunc("POST /themes", server.createThemeHandler)
-	mux.HandleFunc("GET /themes/{id}", server.getThemeHandler)
-	mux.HandleFunc("PATCH /themes/{id}", server.repeateThemeHandler)
-	mux.HandleFunc("DELETE /themes/{id}", server.deleteThemeHandler)
+	mux.HandleFunc("GET /topics", server.getAllTopicsHandler)
+	mux.HandleFunc("POST /topics", server.createTopicHandler)
+	mux.HandleFunc("GET /topics/{id}", server.getTopicHandler)
+	mux.HandleFunc("PATCH /topics/{id}", server.repeateTopicHandler)
+	mux.HandleFunc("DELETE /topics/{id}", server.deleteTopicHandler)
 	mux.HandleFunc("GET /example", exampleHandler)
 
 	err := http.ListenAndServe(fmt.Sprintf(":%d", v.GetInt("Port")), mux)
@@ -56,9 +58,9 @@ func main() {
 }
 
 func exampleHandler(w http.ResponseWriter, r *http.Request) {
-	var theme themes.Theme
+	var topic entity.Topic
 
-	data, err := json.Marshal(&theme)
+	data, err := json.Marshal(&topic)
 	if err != nil {
 		fmt.Println(err)
 		w.WriteHeader(500)
@@ -68,14 +70,14 @@ func exampleHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-func (s *themeServer) getAllThemesHandler(w http.ResponseWriter, r *http.Request) {
-	themes, err := s.themeStore.GetAllThemes()
+func (s *topicServer) getAllTopicsHandler(w http.ResponseWriter, r *http.Request) {
+	topics, err := s.topicStore.GetAllTopics()
 	if err != nil {
 		fmt.Println(r.Host, err)
 		w.WriteHeader(500)
 		return
 	}
-	data, err := json.Marshal(themes)
+	data, err := json.Marshal(topics)
 	if err != nil {
 		fmt.Println(r.Host, err)
 		w.WriteHeader(500)
@@ -84,7 +86,7 @@ func (s *themeServer) getAllThemesHandler(w http.ResponseWriter, r *http.Request
 	w.Write(data)
 }
 
-func (s *themeServer) createThemeHandler(w http.ResponseWriter, r *http.Request) {
+func (s *topicServer) createTopicHandler(w http.ResponseWriter, r *http.Request) {
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
 		fmt.Println(r.Host, err)
@@ -92,8 +94,8 @@ func (s *themeServer) createThemeHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	id, err := s.themeStore.AddTheme(string(data))
-	if _, ok := err.(themes.ThemeTitleError); ok {
+	id, err := s.topicStore.AddTopic(string(data))
+	if _, ok := err.(store.TopicTitleError); ok {
 		fmt.Println(err)
 		w.WriteHeader(400)
 		return
@@ -106,7 +108,7 @@ func (s *themeServer) createThemeHandler(w http.ResponseWriter, r *http.Request)
 	io.WriteString(w, strconv.Itoa(id))
 }
 
-func (s *themeServer) getThemeHandler(w http.ResponseWriter, r *http.Request) {
+func (s *topicServer) getTopicHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		fmt.Println(err)
@@ -114,14 +116,19 @@ func (s *themeServer) getThemeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	theme, err := s.themeStore.GetTheme(id)
+	topic, err := s.topicStore.GetTopic(id)
+	if _, ok := err.(store.TopicNotExistsError); ok {
+		fmt.Println(err)
+		w.WriteHeader(404)
+		return
+	}
 	if err != nil {
 		fmt.Println(err)
 		w.WriteHeader(500)
 		return
 	}
 
-	data, err := json.Marshal(&theme)
+	data, err := json.Marshal(&topic)
 	if err != nil {
 		fmt.Println(err)
 		w.WriteHeader(500)
@@ -131,7 +138,7 @@ func (s *themeServer) getThemeHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-func (s *themeServer) repeateThemeHandler(w http.ResponseWriter, r *http.Request) {
+func (s *topicServer) repeateTopicHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		fmt.Println(err)
@@ -139,7 +146,12 @@ func (s *themeServer) repeateThemeHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	err = s.themeStore.ThemeRepeated(id)
+	err = s.topicStore.TopicRepeated(id)
+	if _, ok := err.(store.TopicNotExistsError); ok {
+		fmt.Println(err)
+		w.WriteHeader(404)
+		return
+	}
 	if err != nil {
 		fmt.Println(err)
 		w.WriteHeader(500)
@@ -147,7 +159,7 @@ func (s *themeServer) repeateThemeHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
-func (s *themeServer) deleteThemeHandler(w http.ResponseWriter, r *http.Request) {
+func (s *topicServer) deleteTopicHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		fmt.Println(err)
@@ -155,7 +167,7 @@ func (s *themeServer) deleteThemeHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	err = s.themeStore.RemoveTheme(id)
+	err = s.topicStore.RemoveTopic(id)
 	if err != nil {
 		fmt.Println(err)
 		w.WriteHeader(500)
