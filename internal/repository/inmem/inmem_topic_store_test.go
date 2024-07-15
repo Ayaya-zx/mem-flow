@@ -5,26 +5,26 @@ import (
 )
 
 func TestAddAndGet(t *testing.T) {
-	store := NewInmemTopicStore()
-	nextId := store.nextId
+	repo := NewInmemTopicRepository()
+	nextId := repo.nextId
 
 	// Add task
-	id, err := store.AddTopic("MyTopic")
+	id, err := repo.AddTopic("MyTopic")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(store.topics) != 1 {
-		t.Fatalf("got len(store.topics) = %d; want 1", len(store.topics))
+	if len(repo.topics) != 1 {
+		t.Fatalf("got len(repo.topics) = %d; want 1", len(repo.topics))
 	}
-	if _, ok := store.topicTitles["MyTopic"]; !ok {
-		t.Fatalf("got store.topicTitles[\"MyTopic\"] = false; want true")
+	if _, ok := repo.topicTitles["MyTopic"]; !ok {
+		t.Fatalf("got repo.topicTitles[\"MyTopic\"] = false; want true")
 	}
-	if store.nextId == nextId {
-		t.Fatalf("got store.nextId = %d; want %d", store.nextId, store.nextId+1)
+	if repo.nextId == nextId {
+		t.Fatalf("got repo.nextId = %d; want %d", repo.nextId, repo.nextId+1)
 	}
 
 	// Get added task
-	topic, err := store.GetTopic(id)
+	topic, err := repo.GetTopic(id)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,69 +37,69 @@ func TestAddAndGet(t *testing.T) {
 }
 
 func TestAddEmpty(t *testing.T) {
-	store := NewInmemTopicStore()
-	id := store.nextId
+	repo := NewInmemTopicRepository()
+	id := repo.nextId
 
 	// Adding a task with an empty title is prohibited
-	_, err := store.AddTopic("")
+	_, err := repo.AddTopic("")
 	if err == nil {
 		t.Errorf("got nil; want error")
 	}
-	if len(store.topics) != 0 {
-		t.Errorf("got len(store.topics) = %d; want 0", len(store.topics))
+	if len(repo.topics) != 0 {
+		t.Errorf("got len(repo.topics) = %d; want 0", len(repo.topics))
 	}
-	if store.nextId != id {
-		t.Errorf("got store.nextId = %d, want %d", store.nextId, id)
+	if repo.nextId != id {
+		t.Errorf("got repo.nextId = %d, want %d", repo.nextId, id)
 	}
 }
 
 func TestAddSameTitleTwice(t *testing.T) {
-	store := NewInmemTopicStore()
+	repo := NewInmemTopicRepository()
 
-	store.AddTopic("MyTopic")
-	nextId := store.nextId
+	repo.AddTopic("MyTopic")
+	nextId := repo.nextId
 
 	// We should not be able to add a task with same name twice
-	_, err := store.AddTopic("MyTopic")
+	_, err := repo.AddTopic("MyTopic")
 	if err == nil {
 		t.Errorf("got nil; want error")
 	}
-	if store.nextId != nextId {
-		t.Errorf("got store.nextId = %d, want %d", store.nextId, nextId)
+	if repo.nextId != nextId {
+		t.Errorf("got repo.nextId = %d, want %d", repo.nextId, nextId)
 	}
 }
 
 func TestRemove(t *testing.T) {
-	store := NewInmemTopicStore()
+	repo := NewInmemTopicRepository()
 
-	id, err := store.AddTopic("MyTopic")
+	id, err := repo.AddTopic("MyTopic")
 	if err != nil {
 		t.Fatal(err)
 	}
-	store.RemoveTopic(id)
-	if len(store.topics) != 0 {
-		t.Errorf("got len(store.topics) = %d; want 0", len(store.topics))
+	repo.RemoveTopic(id)
+	if len(repo.topics) != 0 {
+		t.Errorf("got len(repo.topics) = %d; want 0", len(repo.topics))
 	}
-	if len(store.topicTitles) != 0 {
-		t.Errorf("got len(store.topicTitles) = %d; want 0", len(store.topicTitles))
+	if len(repo.topicTitles) != 0 {
+		t.Errorf("got len(repo.topicTitles) = %d; want 0", len(repo.topicTitles))
 	}
 }
 
 func TestRepeated(t *testing.T) {
-	store := NewInmemTopicStore()
+	repo := NewInmemTopicRepository()
 
-	id, err := store.AddTopic("MyTopic")
+	id, err := repo.AddTopic("MyTopic")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	topic, err := store.GetTopic(id)
+	topic, err := repo.GetTopic(id)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	nextRep := topic.NextRepeat
-	err = store.TopicRepeated(id)
+	err = repo.TopicRepeated(id)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,7 +107,7 @@ func TestRepeated(t *testing.T) {
 		t.Errorf("want topic.NextRepeat change; got %v", topic.NextRepeat)
 	}
 
-	err = store.TopicRepeated(100)
+	err = repo.TopicRepeated(100)
 	if err == nil {
 		t.Errorf("got nil; want err")
 	}
@@ -123,7 +123,7 @@ func TestGet(t *testing.T) {
 		{"MyTopic3", 3},
 	}
 
-	store := NewInmemTopicStore()
+	store := NewInmemTopicRepository()
 	for _, test := range tests {
 		store.AddTopic(test.title)
 	}

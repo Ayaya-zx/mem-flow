@@ -6,34 +6,34 @@ import (
 	"time"
 
 	"github.com/Ayaya-zx/mem-flow/internal/entity"
-	"github.com/Ayaya-zx/mem-flow/internal/store"
+	repo "github.com/Ayaya-zx/mem-flow/internal/repository"
 )
 
-// InmemTopicStore is an in-memory implementation of topics storage.
+// InmemTopicRepository is an in-memory implementation of topics storage.
 // It is safe for concurent use by multiple goroutines.
-type InmemTopicStore struct {
+type InmemTopicRepository struct {
 	m           sync.Mutex
 	topics      map[int]*entity.Topic
 	topicTitles map[string]struct{}
 	nextId      int
 }
 
-// NewInmemTopicStore initializes and returns pointer to
-// new instance of InmemTopicStore.
-func NewInmemTopicStore() *InmemTopicStore {
-	return &InmemTopicStore{
+// NewInmemTopicRepository initializes and returns pointer to
+// new instance of InmemTopicRepository.
+func NewInmemTopicRepository() *InmemTopicRepository {
+	return &InmemTopicRepository{
 		nextId:      1,
 		topics:      make(map[int]*entity.Topic),
 		topicTitles: make(map[string]struct{}),
 	}
 }
 
-func (ts *InmemTopicStore) AddTopic(title string) (int, error) {
+func (ts *InmemTopicRepository) AddTopic(title string) (int, error) {
 	if title == "" {
-		return 0, store.TopicTitleError("topic's title is empty")
+		return 0, repo.TopicTitleError("topic's title is empty")
 	}
 	if _, ok := ts.topicTitles[title]; ok {
-		return 0, store.TopicTitleError(fmt.Sprintf(
+		return 0, repo.TopicTitleError(fmt.Sprintf(
 			"topic with title %s already exists",
 			title,
 		))
@@ -54,7 +54,7 @@ func (ts *InmemTopicStore) AddTopic(title string) (int, error) {
 	return topic.Id, nil
 }
 
-func (ts *InmemTopicStore) RemoveTopic(id int) error {
+func (ts *InmemTopicRepository) RemoveTopic(id int) error {
 	ts.m.Lock()
 	defer ts.m.Unlock()
 	if topic, ok := ts.topics[id]; ok {
@@ -64,19 +64,7 @@ func (ts *InmemTopicStore) RemoveTopic(id int) error {
 	return nil
 }
 
-func (ts *InmemTopicStore) TopicRepeated(id int) error {
-	ts.m.Lock()
-	defer ts.m.Unlock()
-	t, ok := ts.topics[id]
-	if !ok {
-		return store.TopicNotExistsError(
-			fmt.Sprintf("topic with id %d does not exist", id))
-	}
-	t.Repeat()
-	return nil
-}
-
-func (ts *InmemTopicStore) GetAllTopics() ([]*entity.Topic, error) {
+func (ts *InmemTopicRepository) GetAllTopics() ([]*entity.Topic, error) {
 	ts.m.Lock()
 	defer ts.m.Unlock()
 	res := make([]*entity.Topic, 0, len(ts.topics))
@@ -86,13 +74,25 @@ func (ts *InmemTopicStore) GetAllTopics() ([]*entity.Topic, error) {
 	return res, nil
 }
 
-func (ts *InmemTopicStore) GetTopic(id int) (*entity.Topic, error) {
+func (ts *InmemTopicRepository) GetTopic(id int) (*entity.Topic, error) {
 	ts.m.Lock()
 	defer ts.m.Unlock()
 	t, ok := ts.topics[id]
 	if !ok {
-		return nil, store.TopicNotExistsError(
+		return nil, repo.TopicNotExistsError(
 			fmt.Sprintf("topic with id %d does not exist", id))
 	}
 	return t, nil
+}
+
+func (ts *InmemTopicRepository) TopicRepeated(id int) error {
+	ts.m.Lock()
+	defer ts.m.Unlock()
+	t, ok := ts.topics[id]
+	if !ok {
+		return repo.TopicNotExistsError(
+			fmt.Sprintf("topic with id %d does not exist", id))
+	}
+	t.Repeat()
+	return nil
 }
