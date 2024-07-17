@@ -9,7 +9,7 @@ import (
 	repo "github.com/Ayaya-zx/mem-flow/internal/repository"
 )
 
-// InmemTopicRepository is an in-memory implementation of topics storage.
+// InmemTopicRepository is an in-memory implementation of topics repository.
 // It is safe for concurent use by multiple goroutines.
 type InmemTopicRepository struct {
 	m           sync.Mutex
@@ -18,8 +18,6 @@ type InmemTopicRepository struct {
 	nextId      int
 }
 
-// NewInmemTopicRepository initializes and returns pointer to
-// new instance of InmemTopicRepository.
 func NewInmemTopicRepository() *InmemTopicRepository {
 	return &InmemTopicRepository{
 		nextId:      1,

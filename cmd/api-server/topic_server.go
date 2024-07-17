@@ -77,7 +77,16 @@ func (s *topicServer) createTopicHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	io.WriteString(w, strconv.Itoa(id))
+	result, err := json.Marshal(
+		&struct {
+			Id int `json:"id"`
+		}{Id: id})
+	if err != nil {
+		s.handleError(w, r, err)
+		return
+	}
+
+	w.Write(result)
 }
 
 func (s *topicServer) getTopicHandler(w http.ResponseWriter, r *http.Request) {

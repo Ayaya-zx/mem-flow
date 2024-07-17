@@ -123,13 +123,13 @@ func TestGet(t *testing.T) {
 		{"MyTopic3", 3},
 	}
 
-	store := NewInmemTopicRepository()
+	topicRepo := NewInmemTopicRepository()
 	for _, test := range tests {
-		store.AddTopic(test.title)
+		topicRepo.AddTopic(test.title)
 	}
 
 	for _, test := range tests {
-		topic, err := store.GetTopic(test.wantId)
+		topic, err := topicRepo.GetTopic(test.wantId)
 		if err != nil {
 			t.Error(err)
 			continue
@@ -140,7 +140,7 @@ func TestGet(t *testing.T) {
 		}
 	}
 
-	_, err := store.GetTopic(100)
+	_, err := topicRepo.GetTopic(100)
 	if err == nil {
 		t.Errorf("got nil; want err")
 	}
