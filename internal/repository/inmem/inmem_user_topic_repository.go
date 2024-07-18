@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/Ayaya-zx/mem-flow/internal/common"
 	repo "github.com/Ayaya-zx/mem-flow/internal/repository"
 )
 
@@ -26,7 +27,7 @@ func (r *InmemUserTopicRepository) GetUserTopicRepository(name string) (*repo.To
 	defer r.m.Unlock()
 	topicRepo, ok := r.userTopicRepo[name]
 	if !ok {
-		return nil, repo.UserTopicRepositoryNotExistError(
+		return nil, common.UserTopicRepositoryNotExistError(
 			fmt.Sprintf("topic repository for user %s does not exist", name),
 		)
 	}
@@ -37,7 +38,7 @@ func (r *InmemUserTopicRepository) AddUserTopicRepository(name string, topicRepo
 	r.m.Lock()
 	defer r.m.Unlock()
 	if _, ok := r.userTopicRepo[name]; ok {
-		return repo.UserTopicRepositoryAlreadyExistsError(
+		return common.UserTopicRepositoryAlreadyExistsError(
 			fmt.Sprintf("topic repository for user %s already exists", name),
 		)
 	}

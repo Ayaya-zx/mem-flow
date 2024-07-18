@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/Ayaya-zx/mem-flow/internal/common"
 	"github.com/Ayaya-zx/mem-flow/internal/entity"
-	"github.com/Ayaya-zx/mem-flow/internal/repository"
 )
 
 // InmemUserRepository is an in-memory implementation of users repository.
@@ -25,7 +25,7 @@ func (r *InmemUserRepository) AddUser(u *entity.User) error {
 	r.m.Lock()
 	defer r.m.Unlock()
 	if _, ok := r.users[u.Name]; ok {
-		return repository.UserAlreadyExistsError(
+		return common.UserAlreadyExistsError(
 			fmt.Sprintf("user with name %s already exists",
 				u.Name),
 		)
@@ -39,7 +39,7 @@ func (r *InmemUserRepository) GetUser(name string) (*entity.User, error) {
 	defer r.m.Unlock()
 	u, ok := r.users[name]
 	if !ok {
-		return nil, repository.UserNotExistError(
+		return nil, common.UserNotExistError(
 			fmt.Sprintf(
 				"user with name %s does not exist", name,
 			),

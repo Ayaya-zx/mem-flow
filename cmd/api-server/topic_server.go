@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/Ayaya-zx/mem-flow/internal/common"
 	"github.com/Ayaya-zx/mem-flow/internal/entity"
 	repo "github.com/Ayaya-zx/mem-flow/internal/repository"
 )
@@ -27,11 +28,11 @@ func newTopicServer(topicRepo repo.TopicRepository) *topicServer {
 
 func (s *topicServer) handleError(w http.ResponseWriter, _ *http.Request, err error) {
 	fmt.Println(err)
-	if _, notExist := err.(repo.TopicNotExistsError); notExist {
+	if _, notExist := err.(common.TopicNotExistsError); notExist {
 		w.WriteHeader(404)
 		return
 	}
-	if _, badTitle := err.(repo.TopicTitleError); badTitle {
+	if _, badTitle := err.(common.TopicTitleError); badTitle {
 		w.WriteHeader(400)
 		return
 	}

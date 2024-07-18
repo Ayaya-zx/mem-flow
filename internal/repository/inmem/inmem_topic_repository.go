@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Ayaya-zx/mem-flow/internal/common"
 	"github.com/Ayaya-zx/mem-flow/internal/entity"
-	repo "github.com/Ayaya-zx/mem-flow/internal/repository"
 )
 
 // InmemTopicRepository is an in-memory implementation of topics repository.
@@ -28,10 +28,10 @@ func NewInmemTopicRepository() *InmemTopicRepository {
 
 func (ts *InmemTopicRepository) AddTopic(title string) (int, error) {
 	if title == "" {
-		return 0, repo.TopicTitleError("topic's title is empty")
+		return 0, common.TopicTitleError("topic's title is empty")
 	}
 	if _, ok := ts.topicTitles[title]; ok {
-		return 0, repo.TopicTitleError(fmt.Sprintf(
+		return 0, common.TopicTitleError(fmt.Sprintf(
 			"topic with title %s already exists",
 			title,
 		))
@@ -77,7 +77,7 @@ func (ts *InmemTopicRepository) GetTopic(id int) (*entity.Topic, error) {
 	defer ts.m.Unlock()
 	t, ok := ts.topics[id]
 	if !ok {
-		return nil, repo.TopicNotExistsError(
+		return nil, common.TopicNotExistsError(
 			fmt.Sprintf("topic with id %d does not exist", id))
 	}
 	return t, nil
@@ -88,7 +88,7 @@ func (ts *InmemTopicRepository) TopicRepeated(id int) error {
 	defer ts.m.Unlock()
 	t, ok := ts.topics[id]
 	if !ok {
-		return repo.TopicNotExistsError(
+		return common.TopicNotExistsError(
 			fmt.Sprintf("topic with id %d does not exist", id))
 	}
 	t.Repeat()
