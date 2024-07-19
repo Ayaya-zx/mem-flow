@@ -1,10 +1,8 @@
 package inmem
 
 import (
-	"fmt"
 	"sync"
 
-	"github.com/Ayaya-zx/mem-flow/internal/common"
 	repo "github.com/Ayaya-zx/mem-flow/internal/repository"
 )
 
@@ -12,36 +10,29 @@ import (
 // of user topics repository. It is safe for concurent use
 // by multiple goroutines.
 type InmemUserTopicRepository struct {
-	m             sync.Mutex
-	userTopicRepo map[string]*repo.TopicRepository
+	m                sync.Mutex
+	userTopicRepo    map[string]repo.TopicRepository
+	topicRepoFactory repo.TopicRepositoryFactory
 }
 
-func NewInmemUserTopicRepository() *InmemUserTopicRepository {
+func NewInmemUserTopicRepository(topicRepoFactory repo.TopicRepositoryFactory) *InmemUserTopicRepository {
 	return &InmemUserTopicRepository{
-		userTopicRepo: make(map[string]*repo.TopicRepository),
+		userTopicRepo:    make(map[string]repo.TopicRepository),
+		topicRepoFactory: topicRepoFactory,
 	}
 }
 
-func (r *InmemUserTopicRepository) GetUserTopicRepository(name string) (*repo.TopicRepository, error) {
+func (r *InmemUserTopicRepository) GetUserTopicRepository(name string) (repo.TopicRepository, error) {
 	r.m.Lock()
 	defer r.m.Unlock()
 	topicRepo, ok := r.userTopicRepo[name]
 	if !ok {
-		return nil, common.UserTopicRepositoryNotExistError(
-			fmt.Sprintf("topic repository for user %s does not exist", name),
-		)
+		var err error
+		topicRepo, err = r.topicRepoFactory.CreateTopicRepository()
+		if err != nil {
+			return nil, err
+		}
+		r.userTopicRepo[name] = topicRepo
 	}
 	return topicRepo, nil
-}
-
-func (r *InmemUserTopicRepository) AddUserTopicRepository(name string, topicRepo *repo.TopicRepository) error {
-	r.m.Lock()
-	defer r.m.Unlock()
-	if _, ok := r.userTopicRepo[name]; ok {
-		return common.UserTopicRepositoryAlreadyExistsError(
-			fmt.Sprintf("topic repository for user %s already exists", name),
-		)
-	}
-	r.userTopicRepo[name] = topicRepo
-	return nil
 }

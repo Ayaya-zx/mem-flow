@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/Ayaya-zx/mem-flow/internal/auth"
 	"github.com/Ayaya-zx/mem-flow/internal/repository/inmem"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -28,15 +29,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	server := newTopicServer(inmem.NewInmemTopicRepository())
-	mux := http.NewServeMux()
+	server := newTopicServer(
+		auth.NewAuthService(inmem.NewInmemUserRepository()),
+		inmem.NewInmemUserTopicRepository(inmem.NewInmemTopicRepositoryFactory()),
+	)
 
-	mux.HandleFunc("GET /topics", server.getAllTopicsHandler)
-	mux.HandleFunc("POST /topics", server.createTopicHandler)
-	mux.HandleFunc("GET /topics/{id}", server.getTopicHandler)
-	mux.HandleFunc("PATCH /topics/{id}", server.repeateTopicHandler)
-	mux.HandleFunc("DELETE /topics/{id}", server.deleteTopicHandler)
-	mux.HandleFunc("GET /example", server.exampleHandler)
+	mux := http.NewServeMux()
+	mux.Handle("GET /topics", server.authMiddleware(http.HandlerFunc(server.getAllTopicsHandler)))
+	mux.Handle("POST /topics", server.authMiddleware(http.HandlerFunc(server.createTopicHandler)))
+	mux.Handle("GET /topics/{id}", server.authMiddleware(http.HandlerFunc(server.getTopicHandler)))
+	mux.Handle("PATCH /topics/{id}", server.authMiddleware(http.HandlerFunc(server.repeateTopicHandler)))
+	mux.Handle("DELETE /topics/{id}", server.authMiddleware(http.HandlerFunc(server.deleteTopicHandler)))
+	mux.HandleFunc("GET /example", http.HandlerFunc(server.exampleHandler))
+	mux.HandleFunc("POST /registration", server.registrationHandler)
+	mux.HandleFunc("POST /auth", server.authenticationHandler)
 
 	err := http.ListenAndServe(fmt.Sprintf(":%d", v.GetInt("Port")), mux)
 	if err != nil {

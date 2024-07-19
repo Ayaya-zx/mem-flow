@@ -82,15 +82,3 @@ func (ts *InmemTopicRepository) GetTopic(id int) (*entity.Topic, error) {
 	}
 	return t, nil
 }
-
-func (ts *InmemTopicRepository) TopicRepeated(id int) error {
-	ts.m.Lock()
-	defer ts.m.Unlock()
-	t, ok := ts.topics[id]
-	if !ok {
-		return common.TopicNotExistsError(
-			fmt.Sprintf("topic with id %d does not exist", id))
-	}
-	t.Repeat()
-	return nil
-}

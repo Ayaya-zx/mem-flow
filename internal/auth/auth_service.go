@@ -13,15 +13,32 @@ import (
 
 var sercretKey = []byte("super-secret-key")
 
+type AuthData struct {
+	Name     string
+	Password string
+}
+
 type AuthService struct {
 	userRepo repo.UserRepository
 }
 
-func (as *AuthService) RegUser(name, passwd string) (string, error) {
-	u := &entity.User{
-		Name:       name,
-		PasswdHash: hashPassword(passwd),
+func NewAuthService(userRepo repo.UserRepository) *AuthService {
+	return &AuthService{
+		userRepo: userRepo,
 	}
+}
+
+func (as *AuthService) RegUser(authData *AuthData) (string, error) {
+	if authData.Name == "" || authData.Password == "" {
+		return "", common.InvalidAuthData(
+			"name and password cannot be empty strings")
+	}
+
+	u := &entity.User{
+		Name:       authData.Name,
+		PasswdHash: hashPassword(authData.Password),
+	}
+
 	err := as.userRepo.AddUser(u)
 	if err != nil {
 		return "", err
@@ -29,12 +46,12 @@ func (as *AuthService) RegUser(name, passwd string) (string, error) {
 	return createToken(u)
 }
 
-func (as *AuthService) AuthUser(name, passwd string) (string, error) {
-	u, err := as.userRepo.GetUser(name)
+func (as *AuthService) AuthUser(authData *AuthData) (string, error) {
+	u, err := as.userRepo.GetUser(authData.Name)
 	if err != nil {
 		return "", err
 	}
-	if u.PasswdHash != hashPassword(passwd) {
+	if u.PasswdHash != hashPassword(authData.Password) {
 		return "", common.InvalidAuthData(
 			"incorect name or passowrd",
 		)
