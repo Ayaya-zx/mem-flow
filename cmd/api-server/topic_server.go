@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/Ayaya-zx/mem-flow/internal/auth"
@@ -180,22 +179,11 @@ func (s *topicServer) createTopicHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	id, err := topicRepo.AddTopic(string(data))
+	err = topicRepo.AddTopic(string(data))
 	if err != nil {
 		s.handleError(w, r, err)
 		return
 	}
-
-	result, err := json.Marshal(
-		&struct {
-			Id int `json:"id"`
-		}{Id: id})
-	if err != nil {
-		s.handleError(w, r, err)
-		return
-	}
-
-	w.Write(result)
 }
 
 func (s *topicServer) getTopicHandler(w http.ResponseWriter, r *http.Request) {
@@ -206,13 +194,8 @@ func (s *topicServer) getTopicHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := strconv.Atoi(r.PathValue("id"))
-	if err != nil {
-		s.handleError(w, r, clientError(err.Error()))
-		return
-	}
-
-	topic, err := topicRepo.GetTopic(id)
+	title := r.PathValue("title")
+	topic, err := topicRepo.GetTopic(title)
 	if err != nil {
 		s.handleError(w, r, err)
 		return
@@ -235,13 +218,8 @@ func (s *topicServer) repeateTopicHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	id, err := strconv.Atoi(r.PathValue("id"))
-	if err != nil {
-		s.handleError(w, r, clientError(err.Error()))
-		return
-	}
-
-	topic, err := topicRepo.GetTopic(id)
+	title := r.PathValue("title")
+	topic, err := topicRepo.GetTopic(title)
 	if err != nil {
 		s.handleError(w, r, err)
 		return
@@ -258,13 +236,8 @@ func (s *topicServer) deleteTopicHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	id, err := strconv.Atoi(r.PathValue("id"))
-	if err != nil {
-		s.handleError(w, r, clientError(err.Error()))
-		return
-	}
-
-	err = topicRepo.RemoveTopic(id)
+	title := r.PathValue("title")
+	err = topicRepo.RemoveTopic(title)
 	if err != nil {
 		s.handleError(w, r, err)
 		return

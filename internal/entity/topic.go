@@ -7,7 +7,6 @@ import (
 type Level int
 
 type Topic struct {
-	Id           int       `json:"id"`
 	Title        string    `json:"title"`
 	Created      time.Time `json:"created"`
 	LastRepeated time.Time `json:"lastRepeated"`

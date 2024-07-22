@@ -12,27 +12,23 @@ import (
 // InmemTopicRepository is an in-memory implementation of topics repository.
 // It is safe for concurent use by multiple goroutines.
 type InmemTopicRepository struct {
-	m           sync.Mutex
-	topics      map[int]*entity.Topic
-	topicTitles map[string]struct{}
-	nextId      int
+	m      sync.Mutex
+	topics map[string]*entity.Topic
 }
 
 func NewInmemTopicRepository() *InmemTopicRepository {
 	return &InmemTopicRepository{
-		nextId:      1,
-		topics:      make(map[int]*entity.Topic),
-		topicTitles: make(map[string]struct{}),
+		topics: make(map[string]*entity.Topic),
 	}
 }
 
-func (ts *InmemTopicRepository) AddTopic(title string) (int, error) {
+func (ts *InmemTopicRepository) AddTopic(title string) error {
 	if title == "" {
-		return 0, common.TopicTitleError("topic's title is empty")
+		return common.TopicTitleError("topic's title is empty")
 	}
-	if _, ok := ts.topicTitles[title]; ok {
-		return 0, common.TopicTitleError(fmt.Sprintf(
-			"topic with title %s already exists",
+	if _, ok := ts.topics[title]; ok {
+		return common.TopicTitleError(fmt.Sprintf(
+			"topic %s already exists",
 			title,
 		))
 	}
@@ -45,20 +41,14 @@ func (ts *InmemTopicRepository) AddTopic(title string) (int, error) {
 
 	ts.m.Lock()
 	defer ts.m.Unlock()
-	topic.Id = ts.nextId
-	ts.topics[ts.nextId] = topic
-	ts.nextId++
-	ts.topicTitles[title] = struct{}{}
-	return topic.Id, nil
+	ts.topics[title] = topic
+	return nil
 }
 
-func (ts *InmemTopicRepository) RemoveTopic(id int) error {
+func (ts *InmemTopicRepository) RemoveTopic(title string) error {
 	ts.m.Lock()
 	defer ts.m.Unlock()
-	if topic, ok := ts.topics[id]; ok {
-		delete(ts.topics, id)
-		delete(ts.topicTitles, topic.Title)
-	}
+	delete(ts.topics, title)
 	return nil
 }
 
@@ -72,13 +62,13 @@ func (ts *InmemTopicRepository) GetAllTopics() ([]*entity.Topic, error) {
 	return res, nil
 }
 
-func (ts *InmemTopicRepository) GetTopic(id int) (*entity.Topic, error) {
+func (ts *InmemTopicRepository) GetTopic(title string) (*entity.Topic, error) {
 	ts.m.Lock()
 	defer ts.m.Unlock()
-	t, ok := ts.topics[id]
+	t, ok := ts.topics[title]
 	if !ok {
 		return nil, common.TopicNotExistsError(
-			fmt.Sprintf("topic with id %d does not exist", id))
+			fmt.Sprintf("topic %s does not exist", title))
 	}
 	return t, nil
 }
