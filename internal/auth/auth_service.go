@@ -14,8 +14,8 @@ import (
 var sercretKey = []byte("super-secret-key")
 
 type AuthData struct {
-	Name     string
-	Password string
+	Name     string `json:"name"`
+	Password string `json:"passwd"`
 }
 
 type AuthService struct {
