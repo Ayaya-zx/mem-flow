@@ -3,7 +3,6 @@ package inmem
 import (
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/Ayaya-zx/mem-flow/internal/common"
 	"github.com/Ayaya-zx/mem-flow/internal/entity"
@@ -12,43 +11,50 @@ import (
 // InmemTopicRepository is an in-memory implementation of topics repository.
 // It is safe for concurent use by multiple goroutines.
 type InmemTopicRepository struct {
-	m      sync.Mutex
-	topics map[string]*entity.Topic
+	m           sync.Mutex
+	topics      map[int]*entity.Topic
+	topicTitles map[string]struct{}
+	nextId      int
 }
 
 func NewInmemTopicRepository() *InmemTopicRepository {
 	return &InmemTopicRepository{
-		topics: make(map[string]*entity.Topic),
+		topics:      make(map[int]*entity.Topic),
+		topicTitles: make(map[string]struct{}),
+		nextId:      1,
 	}
 }
 
-func (ts *InmemTopicRepository) AddTopic(title string) error {
+func (ts *InmemTopicRepository) AddTopic(title string) (int, error) {
 	if title == "" {
-		return common.TopicTitleError("topic's title is empty")
+		return 0, common.TopicTitleError("topic's title is empty")
 	}
-	if _, ok := ts.topics[title]; ok {
-		return common.TopicTitleError(fmt.Sprintf(
+
+	ts.m.Lock()
+	defer ts.m.Unlock()
+
+	if _, ok := ts.topicTitles[title]; ok {
+		return 0, common.TopicTitleError(fmt.Sprintf(
 			"topic %s already exists",
 			title,
 		))
 	}
 
-	topic := new(entity.Topic)
-	topic.Title = title
-	topic.Created = time.Now()
-	topic.LastRepeated = topic.Created
-	topic.NextRepeat = time.Now().Add(time.Duration(20 * time.Minute))
+	topic := entity.NewTopic(ts.nextId, title)
+	ts.nextId++
+	ts.topics[topic.Id] = topic
+	ts.topicTitles[title] = struct{}{}
 
-	ts.m.Lock()
-	defer ts.m.Unlock()
-	ts.topics[title] = topic
-	return nil
+	return topic.Id, nil
 }
 
-func (ts *InmemTopicRepository) RemoveTopic(title string) error {
+func (ts *InmemTopicRepository) RemoveTopic(id int) error {
 	ts.m.Lock()
 	defer ts.m.Unlock()
-	delete(ts.topics, title)
+	if topic, ok := ts.topics[id]; ok {
+		delete(ts.topics, id)
+		delete(ts.topicTitles, topic.Title)
+	}
 	return nil
 }
 
@@ -62,13 +68,13 @@ func (ts *InmemTopicRepository) GetAllTopics() ([]*entity.Topic, error) {
 	return res, nil
 }
 
-func (ts *InmemTopicRepository) GetTopic(title string) (*entity.Topic, error) {
+func (ts *InmemTopicRepository) GetTopicById(id int) (*entity.Topic, error) {
 	ts.m.Lock()
 	defer ts.m.Unlock()
-	t, ok := ts.topics[title]
+	t, ok := ts.topics[id]
 	if !ok {
 		return nil, common.TopicNotExistsError(
-			fmt.Sprintf("topic %s does not exist", title))
+			fmt.Sprintf("topic with id %d does not exist", id))
 	}
 	return t, nil
 }

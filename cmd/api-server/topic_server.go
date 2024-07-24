@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 
+	"github.com/Ayaya-zx/mem-flow/internal/api"
 	"github.com/Ayaya-zx/mem-flow/internal/auth"
 	"github.com/Ayaya-zx/mem-flow/internal/common"
 	"github.com/Ayaya-zx/mem-flow/internal/entity"
@@ -179,11 +181,21 @@ func (s *topicServer) createTopicHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	err = topicRepo.AddTopic(string(data))
+	var req api.CreateTopicRequest
+	err = json.Unmarshal(data, &req)
+	if err != nil {
+		s.handleError(w, r, clientError(err.Error()))
+	}
+
+	id, err := topicRepo.AddTopic(req.Title)
 	if err != nil {
 		s.handleError(w, r, err)
 		return
 	}
+
+	resp := api.CreateTopicResponse{Id: id}
+	data, _ = json.Marshal(&resp)
+	w.Write(data)
 }
 
 func (s *topicServer) getTopicHandler(w http.ResponseWriter, r *http.Request) {
@@ -194,8 +206,14 @@ func (s *topicServer) getTopicHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	title := r.PathValue("title")
-	topic, err := topicRepo.GetTopic(title)
+	raw := r.PathValue("id")
+	id, err := strconv.Atoi(raw)
+	if err != nil {
+		s.handleError(w, r, clientError(err.Error()))
+		return
+	}
+
+	topic, err := topicRepo.GetTopicById(id)
 	if err != nil {
 		s.handleError(w, r, err)
 		return
@@ -218,8 +236,14 @@ func (s *topicServer) repeateTopicHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	title := r.PathValue("title")
-	topic, err := topicRepo.GetTopic(title)
+	raw := r.PathValue("id")
+	id, err := strconv.Atoi(raw)
+	if err != nil {
+		s.handleError(w, r, clientError(err.Error()))
+		return
+	}
+
+	topic, err := topicRepo.GetTopicById(id)
 	if err != nil {
 		s.handleError(w, r, err)
 		return
@@ -236,8 +260,14 @@ func (s *topicServer) deleteTopicHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	title := r.PathValue("title")
-	err = topicRepo.RemoveTopic(title)
+	raw := r.PathValue("id")
+	id, err := strconv.Atoi(raw)
+	if err != nil {
+		s.handleError(w, r, clientError(err.Error()))
+		return
+	}
+
+	err = topicRepo.RemoveTopic(id)
 	if err != nil {
 		s.handleError(w, r, err)
 		return

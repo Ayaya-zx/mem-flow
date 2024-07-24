@@ -7,11 +7,23 @@ import (
 type Level int
 
 type Topic struct {
+	Id           int       `json:"id"`
 	Title        string    `json:"title"`
 	Created      time.Time `json:"created"`
 	LastRepeated time.Time `json:"lastRepeated"`
 	NextRepeat   time.Time `json:"nextRepeat"`
 	level        int
+}
+
+func NewTopic(id int, title string) *Topic {
+	return &Topic{
+		Id:           id,
+		Title:        title,
+		Created:      time.Now(),
+		LastRepeated: time.Now(),
+		NextRepeat:   time.Now().Add(20 * time.Minute),
+		level:        0,
+	}
 }
 
 func (t *Topic) Repeat() {

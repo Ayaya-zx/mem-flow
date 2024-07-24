@@ -2,21 +2,21 @@ package main
 
 import (
 	"bufio"
-	"bytes"
-	"encoding/json"
 	"flag"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
+	"slices"
+	"strconv"
+	"strings"
 
 	"github.com/Ayaya-zx/mem-flow/internal/auth"
+	"github.com/Ayaya-zx/mem-flow/internal/client"
 	"github.com/Ayaya-zx/mem-flow/internal/entity"
 )
 
 const URL = "http://localhost:8765"
 
-var token string
+var cs *client.ClientService
 
 func main() {
 	var err error
@@ -24,6 +24,7 @@ func main() {
 	fReg := flag.Bool("reg", false, "Register instead of authenticate")
 	flag.Parse()
 
+	cs = client.NewClientService(URL)
 	scanner := bufio.NewScanner(os.Stdin)
 
 	fmt.Print("name: ")
@@ -43,27 +44,21 @@ func main() {
 	}
 
 	if *fReg {
-		err = registrate(&authData)
+		err = cs.Register(authData)
 	} else {
-		err = authenticate(&authData)
+		err = cs.Auth(authData)
 	}
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	printHelp()
+	help()
 
 	fmt.Print("> ")
 	for scanner.Scan() {
 		input := scanner.Text()
-		switch input {
-		case "list", "l":
-			list()
-		case "":
-		default:
-			fmt.Println("Unknown command")
-		}
+		handleCommand(input)
 		fmt.Print("> ")
 	}
 
@@ -72,113 +67,139 @@ func main() {
 	}
 }
 
-func printHelp() {
+func help() {
 	fmt.Println("Usage:")
-	fmt.Println("\thelp   (h) [topic title]   print this help")
-	fmt.Println("\tlist   (l)                 print all topic titles")
-	fmt.Println("\tshow   (s) [topic title]   print topic info")
-	fmt.Println("\tadd    (a) [topic title]   add topic")
-	fmt.Println("\trepeat (p) [topic title]   repeat topic")
-	fmt.Println("\tremove (r) [topic title]   remove topic")
+	fmt.Println("\thelp    (h)                print this help")
+	fmt.Println("\tlist    (l)                print all topic titles")
+	fmt.Println("\tshow    (s) [topic id]     print topic info")
+	fmt.Println("\tadd     (a) [topic title]  add topic")
+	fmt.Println("\trepeat  (r) [topic id]     repeat topic")
+	fmt.Println("\tdelete  (d) [topic id]     delete topic")
 }
 
-func registrate(authData *auth.AuthData) error {
-	data, err := json.Marshal(&authData)
-	if err != nil {
-		return err
-	}
-
-	resp, err := http.Post(
-		URL+"/registration",
-		"application/json",
-		bytes.NewReader(data),
-	)
-	if err != nil {
-		return err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("api status code %d", resp.StatusCode)
-	}
-
-	tokenData, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil
-	}
-	resp.Body.Close()
-
-	token = string(tokenData)
-	return nil
+func shortHelp() {
+	fmt.Println("Bad command format")
+	fmt.Println("To print help type 'help' or 'h'")
 }
 
-func authenticate(authData *auth.AuthData) error {
-	data, err := json.Marshal(&authData)
-	if err != nil {
-		return err
-	}
+func handleCommand(input string) {
+	var cmd, arg string
 
-	resp, err := http.Post(
-		URL+"/auth",
-		"application/json",
-		bytes.NewReader(data),
-	)
-	if err != nil {
-		return err
+	split := strings.Split(input, " ")
+	if len(split) > 2 {
+		shortHelp()
+		return
 	}
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("api status code %d", resp.StatusCode)
+	cmd = split[0]
+	if len(split) > 1 {
+		arg = split[1]
+	} else {
+		arg = ""
 	}
-
-	tokenData, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil
+	switch cmd {
+	case "list", "l":
+		list()
+	case "add", "a":
+		if arg == "" {
+			shortHelp()
+			return
+		}
+		add(arg)
+	case "show", "s":
+		if arg == "" {
+			shortHelp()
+			return
+		}
+		id, err := strconv.Atoi(arg)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		show(id)
+	case "repeat", "r":
+		if arg == "" {
+			shortHelp()
+			return
+		}
+		id, err := strconv.Atoi(arg)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		repeat(id)
+	case "delete", "d":
+		if arg == "" {
+			shortHelp()
+			return
+		}
+		id, err := strconv.Atoi(arg)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		remove(id)
+	case "help", "h":
+		help()
+	case "":
+	default:
+		fmt.Println("Unknown command")
 	}
-	resp.Body.Close()
-
-	token = string(tokenData)
-	return nil
 }
 
 func list() {
-	if token == "" {
-		panic("No auth token")
-	}
-
-	req, err := http.NewRequest(
-		"GET",
-		URL+"/topics",
-		nil,
-	)
+	topics, err := cs.GetAllTopics()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	req.Header.Add("Authorization", "Bearer "+token)
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("api status code %d", resp.StatusCode)
-		return
-	}
-
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	var topics []*entity.Topic
-	err = json.Unmarshal(data, &topics)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	slices.SortFunc(topics, func(a, b entity.Topic) int {
+		return a.Id - b.Id
+	})
 
 	fmt.Println("Themes list:")
 	for _, t := range topics {
-		fmt.Println(t.Title)
+		fmt.Printf("%d: %s\n", t.Id, t.Title)
+	}
+}
+
+func add(title string) {
+	err := cs.AddTopic(title)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println("OK")
+	}
+}
+
+func show(id int) {
+	topic, err := cs.GetTopicById(id)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Println("Id:", topic.Id)
+	fmt.Println("Title:", topic.Title)
+	fmt.Println("Created:", topic.Created)
+	fmt.Println("Last repeated:", topic.LastRepeated)
+	fmt.Println("Next repeat:", topic.NextRepeat)
+}
+
+func repeat(id int) {
+	err := cs.RepeatTopic(id)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println("OK")
+	}
+}
+
+func remove(id int) {
+	err := cs.RemoveTopic(id)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println("OK")
 	}
 }
