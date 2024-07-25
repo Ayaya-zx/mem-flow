@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestAddAndGet(t *testing.T) {
+func TestAddTopicAndGetTopic(t *testing.T) {
 	repo := NewInmemTopicRepository()
 	nextId := repo.nextId
 
@@ -28,15 +28,15 @@ func TestAddAndGet(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// if topic.Id != id {
-	// 	t.Errorf("got topic.Id = %d; id = %d", topic.Id, id)
-	// }
+	if topic.Id != id {
+		t.Errorf("got topic.Id = %d; id = %d", topic.Id, id)
+	}
 	if topic.Title != "MyTopic" {
 		t.Errorf("got topic.Title = %s; want \"MyTopic\"", topic.Title)
 	}
 }
 
-func TestAddEmpty(t *testing.T) {
+func TestAddTopicWithEmptyTitle(t *testing.T) {
 	repo := NewInmemTopicRepository()
 	id := repo.nextId
 
@@ -53,7 +53,7 @@ func TestAddEmpty(t *testing.T) {
 	}
 }
 
-func TestAddSameTitleTwice(t *testing.T) {
+func TestAddTopicWithSameTitleTwice(t *testing.T) {
 	repo := NewInmemTopicRepository()
 
 	repo.AddTopic("MyTopic")
@@ -69,14 +69,17 @@ func TestAddSameTitleTwice(t *testing.T) {
 	}
 }
 
-func TestRemove(t *testing.T) {
+func TestRemoveTopic(t *testing.T) {
 	repo := NewInmemTopicRepository()
 
 	id, err := repo.AddTopic("MyTopic")
 	if err != nil {
 		t.Fatal(err)
 	}
-	repo.RemoveTopic(id)
+	err = repo.RemoveTopic(id)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(repo.topics) != 0 {
 		t.Errorf("got len(repo.topics) = %d; want 0", len(repo.topics))
 	}
@@ -85,7 +88,7 @@ func TestRemove(t *testing.T) {
 	}
 }
 
-func TestGet(t *testing.T) {
+func TestGetTopic(t *testing.T) {
 	var tests = []struct {
 		title  string
 		wantId int

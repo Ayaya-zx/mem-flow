@@ -5,6 +5,7 @@ type (
 	UserTopicRepositoryAlreadyExistsError string
 	UserNotExistError                     string
 	UserAlreadyExistsError                string
+	EmptyUserName                         string
 	TopicTitleError                       string
 	TopicNotExistsError                   string
 	InvalidAuthData                       string
@@ -24,6 +25,10 @@ func (e UserNotExistError) Error() string {
 }
 
 func (e UserAlreadyExistsError) Error() string {
+	return string(e)
+}
+
+func (e EmptyUserName) Error() string {
 	return string(e)
 }
 

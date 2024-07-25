@@ -22,6 +22,9 @@ func NewInmemUserRepository() *InmemUserRepository {
 }
 
 func (r *InmemUserRepository) AddUser(u *entity.User) error {
+	if u.Name == "" {
+		return common.EmptyUserName("user name is empty")
+	}
 	r.m.Lock()
 	defer r.m.Unlock()
 	if _, ok := r.users[u.Name]; ok {
